@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracker de Reclutadores - Rebelde Live</title>
+    <style>
+        :root {
+            --neon-pink: #ff007f;
+            --neon-cyan: #00ffff;
+            --neon-green: #39ff14;
+            --bg-black: #0a0a0a;
+            --panel-bg: #111111;
+            --text-white: #ffffff;
+        }
+        body {
+            background-color: var(--bg-black);
+            color: var(--text-white);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+        h2 { color: var(--neon-cyan); text-align: center; text-transform: uppercase; }
+        .header-section {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--neon-pink);
+            margin-bottom: 20px;
+        }
+        label { font-size: 0.85em; color: #ccc; margin-top: 10px; display: block; }
+        input[type="text"], input[type="date"], input[type="tel"], select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            background: #222;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--neon-cyan); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .prospect-card {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--neon-cyan);
+            margin-bottom: 15px;
+        }
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .checkbox-label { font-size: 0.85em; display: flex; align-items: center; }
+        .checkbox-label input { margin-right: 8px; }
+        
+        .global-stats {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid var(--neon-green);
+            margin-top: 20px;
+            text-align: center;
+            position: sticky;
+            bottom: 10px;
+            z-index: 100;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.8);
+        }
+        .progress-container {
+            margin-top: 15px;
+            background: #333;
+            height: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--neon-green);
+            width: 0%;
+            transition: width 0.4s;
+        }
+        .labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        .big-number { font-size: 1.8em; color: var(--neon-green); font-weight: bold; margin: 10px 0; }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            margin-top: 15px;
+            background: var(--neon-pink);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        button.add-btn { background: #333; border: 1px solid var(--neon-cyan); color: var(--neon-cyan); }
+        button:hover { filter: brightness(1.2); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Rebelde Live - Panel de Reclutamiento</h2>
+    
+    <div class="header-section">
+        <label>Nombre del Reclutador</label>
+        <input type="text" id="recruiterName" placeholder="Tu nombre completo">
+        
+        <div class="grid-2">
+            <div>
+                <label>¿Haces videos para reclutar?</label>
+                <select id="makesVideos">
+                    <option value="No">No</option>
+                    <option value="Sí">Sí</option>
+                </select>
+            </div>
+            <div>
+                <label>¿Haces Live para reclutar?</label>
+                <select id="makesLives">
+                    <option value="No">No</option>
+                    <option value="Sí">Sí</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="prospectsList"></div>
+
+    <button class="add-btn" onclick="addProspect()">+ Agregar Nuevo Prospecto</button>
+
+    <div class="global-stats">
+        <h3 style="margin-top:0; color: white;">PROGRESO DE APROBADOS</h3>
+        <p style="font-size:0.85em; color:#ccc;">(Solo suman los marcados como "Aprobados por Agencia")</p>
+        
+        <div class="progress-container">
+            <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
+        </div>
+        <div class="labels">
+            <span>0</span>
+            <span>10 (100k)</span>
+            <span>25 (200k)</span>
+            <span>30 (300k)</span>
+        </div>
+        
+        <div class="big-number" id="totalPayout">$0 COP</div>
+        <div style="color: var(--neon-cyan); font-weight: bold;" id="approvedCountText">0 / 30 Aprobados</div>
+    </div>
+
+    <button onclick="sendToWhatsApp()">ENVIAR REPORTE A KAREN POR WHATSAPP</button>
+</div>
+
+<script>
+    let prospectCount = 0;
+
+    function addProspect() {
+        prospectCount++;
+        const div = document.createElement('div');
+        div.className = 'prospect-card';
+        div.id = `prospect-${prospectCount}`;
+        div.innerHTML = `
+            <div class="grid-2">
+                <div>
+                    <label>Usuario (TikTok)</label>
+                    <input type="text" class="p-user" placeholder="@usuario">
+                </div>
+                <div>
+                    <label>Teléfono (WhatsApp)</label>
+                    <input type="tel" class="p-phone" placeholder="+57...">
+                </div>
+                <div>
+                    <label>Medio de contacto</label>
+                    <select class="p-channel">
+                        <option value="TikTok">TikTok</option>
+                        <option value="Instagram">Instagram</option>
+                        <option value="Mensajes/WhatsApp">Mensajes/WhatsApp</option>
+                        <option value="Live">Live</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Fecha de contacto</label>
+                    <input type="date" class="p-date">
+                </div>
+            </div>
+
+            <label>Estado de Agencia (Define el pago)</label>
+            <select class="p-status" onchange="calculate()" style="border-color: var(--neon-pink);">
+                <option value="En contacto">En contacto inicial</option>
+                <option value="Esperando respuesta">Esperando respuesta</option>
+                <option value="Enviado a revisión">Enviado a revisión a Gerencia</option>
+                <option value="Aprobado por Agencia">✅ Aprobado por Agencia</option>
+                <option value="Rechazado">❌ Rechazado</option>
+            </select>
+
+            <div class="checkbox-group">
+                <label class="checkbox-label"><input type="checkbox" class="p-followup"> Seguimiento hecho</label>
+                <label class="checkbox-label"><input type="checkbox" class="p-replied"> El creador contestó</label>
+                <label class="checkbox-label"><input type="checkbox" class="p-infosent"> Se envió info de agencia</label>
+            </div>
+            
+            <label>Tipo de mensaje usado</label>
+            <select class="p-script">
+                <option value="Mensaje de Agencia">Mensaje oficial de Agencia</option>
+                <option value="Mensaje Propio">Mensaje Propio / Personalizado</option>
+            </select>
+        `;
+        document.getElementById('prospectsList').appendChild(div);
+        calculate();
+    }
+
+    function calculate() {
+        const cards = document.querySelectorAll('.prospect-card');
+        let approvedCreators = 0;
+
+        cards.forEach(card => {
+            let status = card.querySelector('.p-status').value;
+            if (status === "Aprobado por Agencia") {
+                approvedCreators++;
+            }
+        });
+
+        // Lógica de pagos
+        let payout = 0;
+        if (approvedCreators >= 30) {
+            payout = 300000;
+        } else if (approvedCreators >= 25) {
+            payout = 200000;
+        } else if (approvedCreators >= 10) {
+            payout = 100000;
+        }
+
+        // Actualizar UI
+        let percent = Math.min((approvedCreators / 30) * 100, 100);
+        document.getElementById('progressBar').style.width = percent + '%';
+        document.getElementById('totalPayout').innerText = "$" + payout.toLocaleString('es-CO') + " COP";
+        document.getElementById('approvedCountText').innerText = `${approvedCreators} / 30 Aprobados`;
+    }
+
+    function sendToWhatsApp() {
+        const recruiter = document.getElementById('recruiterName').value || "Sin Nombre";
+        const videos = document.getElementById('makesVideos').value;
+        const lives = document.getElementById('makesLives').value;
+        const totalPayout = document.getElementById('totalPayout').innerText;
+        const approvedText = document.getElementById('approvedCountText').innerText;
+        
+        let report = `*REPORTE DE RECLUTAMIENTO* 🎯%0A*Reclutador:* ${recruiter}%0A*Videos:* ${videos} | *Lives:* ${lives}%0A*Aprobados:* ${approvedText}%0A*Pago Proyectado:* ${totalPayout}%0A%0A*DETALLE PROSPECTOS:*%0A`;
+        
+        const cards = document.querySelectorAll('.prospect-card');
+        cards.forEach((card, index) => {
+            let user = card.querySelector('.p-user').value || "N/A";
+            let status = card.querySelector('.p-status').value;
+            let channel = card.querySelector('.p-channel').value;
+            let date = card.querySelector('.p-date').value || "Sin fecha";
+            
+            report += `${index + 1}. *${user}* | ${status} | ${channel} | ${date}%0A`;
+        });
+
+        const url = `https://wa.me/573114835387?text=${report}`;
+        window.open(url, '_blank');
+    }
+
+    // Inicializar con 1 prospecto por defecto
+    addProspect();
+</script>
+
+</body>
+</html>
